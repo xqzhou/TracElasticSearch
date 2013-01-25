@@ -3,9 +3,14 @@ from trac.util.html import html
 from trac.web import IRequestHandler
 from trac.web.chrome import INavigationContributor
 from tracadvsearch import IAdvSearchBackend
+from pyelasticsearch import ElasticSearch
 
 class ElasticSearchPlugin(Component):
     implements(IAdvSearchBackend)
+
+
+    def __init__(self):
+        self.es = ElasticSearch('http://localhost:9200/')
 
     def get_name(self):
         return self.__class__.__name__
@@ -20,16 +25,16 @@ class ElasticSearchPlugin(Component):
         pass
 
     def query_backend(self, criteria):
-        return (
-            200, 
-            [
-                {
-                    'title': 'TracHelp', 
-                    'score': 0.876, 
-                    'source': 'wiki', 
-                    'summary': '==Trac Help== ....',
-                    'date': '2011-02-34 23:34',
-                    'author': 'admin',
-                }
-            ]
-        )
+        result = self.es.search(criteria['q'])
+        hits = result['hits']
+        docs = []
+        for hit in hits['hits']:
+            doc = {
+                'title': hit['_source']['name'],
+                'summary': hit['_source']['text'],
+                'score': hit['_score'],
+                'source': 'wiki'
+            }
+            docs.append(doc)
+
+        return (hits['total'], docs)

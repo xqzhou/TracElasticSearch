@@ -25,7 +25,21 @@ class ElasticSearchPlugin(Component):
         pass
 
     def query_backend(self, criteria):
-        result = self.es.search(criteria['q'])
+        q_parts = []
+        if criteria['q']:
+            q_parts.append(criteria['q']) 
+
+        q_author = ' OR '.join([f for f in criteria['author'] if f])
+        if q_author:
+            q_parts.append('author:(%s)' % q_author)
+
+        q = ' AND '.join(q_parts)
+        print('==================================')
+        print(q)
+        print('==================================')
+
+        result = self.es.search(q)
+
         hits = result['hits']
         docs = []
         for hit in hits['hits']:
